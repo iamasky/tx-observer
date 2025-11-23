@@ -12,7 +12,12 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, origins=[
+    "https://iamboy.info",
+    "https://www.iamboy.info",
+    "http://localhost:5173",
+    "http://localhost:3000"
+])  # Enable CORS for specified origins
 
 # Start Shioaji in a background thread to avoid blocking Flask startup
 def start_shioaji():
