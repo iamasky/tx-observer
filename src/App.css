@@ -1,0 +1,80 @@
+/* src/App.css */
+/* Page specific styles */
+.page-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding-right: 2rem;
+  /* Default padding */
+  transition: padding-right 0.3s ease;
+}
+
+.page-container.with-sidebar {
+  padding-right: 320px;
+  /* Make room for the fixed sidebar */
+}
+
+.page-container.with-sidebar.collapsed {
+  padding-right: 80px;
+  /* Collapsed width */
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ef4444;
+  font-weight: 600;
+  background-color: rgba(239, 68, 68, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+}
+
+.live-indicator .dot {
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}

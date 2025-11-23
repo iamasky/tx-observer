@@ -1,0 +1,201 @@
+/* src/components/AlertLog.css */
+.alert-log-container {
+    background-color: var(--bg-card);
+    border-left: 1px solid var(--border);
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+    transition: width 0.3s ease;
+}
+
+.alert-log-container.collapsed {
+    width: 60px;
+}
+
+.alert-log-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-card);
+    height: 70px;
+    /* Fixed height for consistency */
+}
+
+.alert-log-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.alert-log-container.collapsed .alert-log-header h3 {
+    opacity: 0;
+    width: 0;
+    margin: 0;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+.badge {
+    background-color: var(--bg-dark);
+    color: var(--text-secondary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.alert-log-container.collapsed .badge {
+    display: none;
+}
+
+.alert-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow-x: hidden;
+    /* Hide horizontal scrollbar during transition */
+}
+
+.alert-log-container.collapsed .alert-list {
+    padding: 1rem 0.5rem;
+    align-items: center;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem 0;
+    font-style: italic;
+    white-space: nowrap;
+}
+
+.alert-log-container.collapsed .empty-state {
+    display: none;
+}
+
+.alert-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background-color: var(--bg-dark);
+    border: 1px solid transparent;
+    animation: slideIn 0.3s ease-out;
+    width: 100%;
+}
+
+.alert-log-container.collapsed .alert-item {
+    padding: 0.75rem;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.alert-item.rise {
+    border-color: rgba(239, 68, 68, 0.3);
+    background-color: rgba(239, 68, 68, 0.05);
+}
+
+.alert-item.fall {
+    border-color: rgba(34, 197, 94, 0.3);
+    background-color: rgba(34, 197, 94, 0.05);
+}
+
+.alert-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.alert-item.rise .alert-icon {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.alert-item.fall .alert-icon {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.alert-content {
+    flex: 1;
+    min-width: 0;
+    /* Allow text truncation */
+}
+
+.alert-log-container.collapsed .alert-content {
+    display: none;
+}
+
+.alert-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.alert-item.rise .alert-title {
+    color: #ef4444;
+}
+
+.alert-item.fall .alert-title {
+    color: #22c55e;
+}
+
+.alert-time {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.alert-details {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.time-tag {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}

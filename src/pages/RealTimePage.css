@@ -1,0 +1,6 @@
+/* src/pages/RealTimePage.css */
+.date-display {
+    color: var(--text-secondary);
+    margin: 0.5rem 0 0 0;
+    font-size: 1rem;
+}
