@@ -1,0 +1,15 @@
+2025-11-24 20:23:00.340 | WARNING  | importlib._bootstrap:_call_with_frames_removed:241 - Optional: pip install shioaji[speed] or uv add shioaji --extra speed for better performance.
+Response Code: 0 | Event Code: 0 | Info: host '210.59.255.161:80', hostname '210.59.255.161:80' IP 210.59.255.161:80 (host 1 of 1) (host connection attempt 1 of 1) (total connection attempt 1 of 1) | Event: Session up
+Login success
+Contract: TXFR1
+Current Time (TPE): 2025-11-24 20:23:01.948885+08:00
+Requesting kbars for start=2025-11-24
+Response Code: 200 | Event Code: 16 | Info: APISUB/V1/SYS/CONTRACT | Event: Subscribe or Unsubscribe ok
+Returned 624 bars
+First TS: 1763973960000000000
+  UTC: 2025-11-24 08:46:00+00:00
+  TPE: 2025-11-24 16:46:00+08:00
+Last TS: 1764015840000000000
+  UTC: 2025-11-24 20:24:00+00:00
+  TPE: 2025-11-25 04:24:00+08:00
+Time difference (Now - Last Data): -1 day, 15:59:01.948885

@@ -11,6 +11,7 @@ import {
     ReferenceLine,
     Label,
     Scatter,
+    LabelList,
     Cell
 } from 'recharts';
 import './ChartDisplay.css';
@@ -34,13 +35,11 @@ const CustomLabel = (props) => {
     );
 };
 
-const ChartDisplay = ({ data, settings, alerts = [] }) => {
-    const { thresholdLines, domain, referencePrice, xDomain } = useMemo(() => {
+const ChartDisplay = ({ data, settings, alerts = [], openPrice = null }) => {
+    const { thresholdLines, domain, rollingBasePrice, xDomain, yMin, yMax } = useMemo(() => {
         if (!data || data.length === 0 || !settings) {
-            return { thresholdLines: [], domain: ['auto', 'auto'], referencePrice: null };
+            return { thresholdLines: [], domain: ['auto', 'auto'], rollingBasePrice: null, xDomain: ['auto', 'auto'], yMin: 0, yMax: 0 };
         }
-
-        // 1. 找出最新的時間點
         const latestPoint = data[data.length - 1];
         const latestTime = latestPoint.timestamp;
 
@@ -49,7 +48,7 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
         const targetTime = latestTime - (timeWindowMinutes * 60 * 1000);
 
         // 3. 在資料中尋找基準價格
-        // 容許誤差 120 秒 (已放寬)
+        // 容許誤差 120 秒
         const timeTolerance = 120 * 1000;
         let baselineData = null;
 
@@ -61,6 +60,18 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
                     baselineData = point;
                 }
                 break;
+            }
+        }
+
+        // Fallback: 如果找不到精確點，但資料長度已經接近 timeWindow (例如 > 90%)，則使用最舊的點
+        if (!baselineData && data.length > 0) {
+            const oldestPoint = data[0];
+            const dataDuration = latestTime - oldestPoint.timestamp;
+            const targetDuration = timeWindowMinutes * 60 * 1000;
+
+            // 如果資料長度至少有目標窗口的 90%，就用最舊點當基準
+            if (dataDuration >= targetDuration * 0.9) {
+                baselineData = oldestPoint;
             }
         }
 
@@ -93,16 +104,21 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
 
         // Calculate Y-axis domain
         const prices = data.map(d => d.close);
-        // Include refPrice and threshold lines in domain calculation
+        // Include refPrice, openPrice and threshold lines in domain calculation
         let allValues = [...prices];
         if (refPrice !== null) {
             allValues.push(refPrice);
             lines.forEach(l => allValues.push(l.y));
         }
+        if (openPrice !== null) {
+            allValues.push(openPrice);
+        }
 
         const minVal = Math.min(...allValues);
         const maxVal = Math.max(...allValues);
         const padding = (maxVal - minVal) * 0.1;
+        const yMin = Math.floor(minVal - padding);
+        const yMax = Math.ceil(maxVal + padding);
 
         // Calculate X-axis domain explicitly
         const xMin = data.length > 0 ? data[0].timestamp : 'auto';
@@ -110,15 +126,36 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
 
         return {
             thresholdLines: lines,
-            domain: [Math.floor(minVal - padding), Math.ceil(maxVal + padding)],
+            domain: [yMin, yMax],
             xDomain: [xMin, xMax],
-            referencePrice: refPrice
+            rollingBasePrice: refPrice,
+            yMin,
+            yMax
         };
-    }, [data, settings]);
+    }, [data, settings, openPrice]);
+
+    // 計算漸層 offset - 只使用 openPrice 作為基準
+    const gradientOffset = () => {
+        // 只使用 openPrice，不使用 rollingBasePrice
+        if (openPrice === null || openPrice === undefined || yMax <= yMin) {
+            return 0.5; // 如果沒有開盤價，使用中間值
+        }
+        if (openPrice >= yMax) return 0;
+        if (openPrice <= yMin) return 1;
+
+        return (yMax - openPrice) / (yMax - yMin);
+    };
+
+    const off = gradientOffset();
 
     // 合併警示資訊到主數據中
     const chartData = useMemo(() => {
         if (!data || data.length === 0) return [];
+
+        // 找出最高點和最低點的價格（使用 close）
+        const allClosePrices = data.map(d => d.close);
+        const maxPrice = Math.max(...allClosePrices);
+        const minPrice = Math.min(...allClosePrices);
 
         // 創建警示點的 Map 以便快速查找
         const alertMap = new Map();
@@ -132,15 +169,24 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
             });
         }
 
-        // 將警示資訊合併到數據中
+        // 合併警示資訊與最高/最低點標記
         return data.map(point => {
             const alert = alertMap.get(point.timestamp);
+            const isHigh = point.close === maxPrice;
+            const isLow = point.close === minPrice;
+
             return {
                 ...point,
                 isAlert: !!alert,
                 alertType: alert?.type,
                 alertPoints: alert?.points,
-                alertPrice: alert?.toPrice
+                alertPrice: alert?.toPrice,
+                // 只在最高/最低點且沒有警示時顯示 High/Low 標記，避免重疊 (可選)
+                isHighest: isHigh,
+                isLowest: isLow,
+                // 用於 Scatter 顯示的數值
+                highLowValue: (isHigh || isLow) ? point.close : null,
+                alertValue: !!alert ? point.close : null
             };
         });
     }, [data, alerts]);
@@ -152,7 +198,13 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
     return (
         <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ right: 20, left: 10 }}>
+                <ComposedChart data={chartData} margin={{ right: 60, left: 100, top: 20, bottom: 20 }}>
+                    <defs>
+                        <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset={off} stopColor="#ef4444" stopOpacity={1} />
+                            <stop offset={off} stopColor="#22c55e" stopOpacity={1} />
+                        </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
                         dataKey="timestamp"
@@ -167,6 +219,7 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
                         domain={domain}
                         stroke="#94a3b8"
                         tickFormatter={(value) => value.toFixed(0)}
+                        orientation="right"
                     />
                     <Tooltip
                         shared={false}
@@ -174,24 +227,21 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
                         content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                                 const point = payload[0].payload;
-
-                                // 如果是警示點，顯示警示資訊
+                                // 優先顯示警示資訊
                                 if (point.isAlert) {
                                     return (
-                                        <div className="custom-tooltip" style={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9', padding: '10px', border: '1px solid', borderRadius: '4px' }}>
+                                        <div className="custom-tooltip alert-tooltip">
                                             <p className="label">{new Date(label).toLocaleTimeString()}</p>
                                             <p className="intro" style={{ color: point.alertType === 'RISE' ? '#ef4444' : '#22c55e' }}>
-                                                {`警示點位: ${point.alertPrice} (波動 ${point.alertPoints}點)`}
+                                                {`警示: ${point.alertPrice} (${point.alertType === 'RISE' ? '▲' : '▼'}${point.alertPoints})`}
                                             </p>
                                         </div>
                                     );
                                 }
-
-                                // 否則顯示價格資訊
                                 return (
-                                    <div className="custom-tooltip" style={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9', padding: '10px', border: '1px solid', borderRadius: '4px' }}>
+                                    <div className="custom-tooltip">
                                         <p className="label">{new Date(label).toLocaleTimeString()}</p>
-                                        <p className="intro" style={{ color: '#f1f5f9' }}>
+                                        <p className="intro">
                                             {`價格: ${point.close.toFixed(0)}`}
                                         </p>
                                     </div>
@@ -200,43 +250,45 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
                             return null;
                         }}
                     />
+
+                    {/* 主價格線 - 使用 splitColor 實現紅綠變色 */}
                     <Line
                         type="monotone"
                         dataKey="close"
-                        stroke="#3b82f6"
+                        stroke="url(#splitColor)"
                         strokeWidth={2}
-                        dot={(props) => {
-                            const { cx, cy, payload } = props;
-                            // 只在警示點顯示圓點
-                            if (payload.isAlert) {
-                                return (
-                                    <circle
-                                        cx={cx}
-                                        cy={cy}
-                                        r={5}
-                                        fill={payload.alertType === 'RISE' ? '#ef4444' : '#22c55e'}
-                                        stroke="none"
-                                    />
-                                );
-                            }
-                            return null;
-                        }}
-                        animationDuration={300}
-                        isAnimationActive={false}
+                        dot={false}
+                        activeDot={{ r: 6 }}
+                        animationDuration={500}
                     />
 
-                    {/* 基準參考線 (藍色) */}
-                    {referencePrice !== null && (
+                    {/* 開盤價參考線 (白色虛線) - 移到 Line 之後 */}
+                    {openPrice && (
                         <ReferenceLine
-                            y={referencePrice}
+                            y={Number(openPrice)}
+                            stroke="#ffffff"
+                            strokeDasharray="3 3"
+                            strokeWidth={2}
+                            isFront={true}
+                            label={{ position: 'left', value: '基線', fill: '#ffffff', fontSize: 12 }}
+                        />
+                    )}
+
+                    {/* 滾動基準價參考線 (藍色虛線 - 前XX分基準) - 移到 Line 之後 */}
+                    {rollingBasePrice && (
+                        <ReferenceLine
+                            y={Number(rollingBasePrice)}
                             stroke="#3b82f6"
                             strokeDasharray="3 3"
-                            strokeWidth={1.5}
-                        >
-                            <Label
-                                content={<CustomLabel value={`基準(${settings.timeWindow}分前)\\n${Math.round(referencePrice)}`} fill="#3b82f6" fontSize={12} />}
-                            />
-                        </ReferenceLine>
+                            strokeWidth={2}
+                            isFront={true}
+                            label={{
+                                position: 'left',
+                                value: `${settings.timeWindow || 60}分內的基準線`,
+                                fill: '#3b82f6',
+                                fontSize: 12
+                            }}
+                        />
                     )}
 
                     {/* 警示觸發線 */}
@@ -247,12 +299,34 @@ const ChartDisplay = ({ data, settings, alerts = [] }) => {
                             stroke={line.color}
                             strokeDasharray="5 5"
                             strokeWidth={2}
+                            isFront={true}
                         >
                             <Label
                                 content={<CustomLabel value={line.label} fill={line.color} fontSize={12} />}
                             />
                         </ReferenceLine>
                     ))}
+
+                    {/* 最高/最低點標示 */}
+                    <Scatter dataKey="highLowValue" fill="#fbbf24" shape="circle">
+                        <LabelList
+                            dataKey="close"
+                            position="top"
+                            offset={10}
+                            formatter={(val) => val}
+                            style={{ fill: '#fbbf24', fontSize: 12, fontWeight: 'bold' }}
+                        />
+                    </Scatter>
+
+                    {/* 警示點標示 */}
+                    <Scatter dataKey="alertValue" shape="circle">
+                        {
+                            chartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.alertType === 'RISE' ? '#ef4444' : '#22c55e'} />
+                            ))
+                        }
+                    </Scatter>
+
                 </ComposedChart>
             </ResponsiveContainer>
         </div>
