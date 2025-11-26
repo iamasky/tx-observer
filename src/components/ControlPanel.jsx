@@ -21,7 +21,7 @@ const ControlPanel = ({
     const [localSettings, setLocalSettings] = useState(settings);
     const [localSpeed, setLocalSpeed] = useState(playbackSpeed || { value: 5, unit: 'SECONDS' });
     const [isTesting, setIsTesting] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(true);
 
     // Sync local settings if props change
     useEffect(() => {
